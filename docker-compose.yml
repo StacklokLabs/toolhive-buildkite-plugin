@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  tests:
+    image: buildkite/plugin-tester
+    volumes:
+      - ".:/plugin:ro"
+    working_dir: /plugin
+
+  lint:
+    image: buildkite/plugin-linter
+    command: ['--id', 'StacklokLabs/toolhive']
+    volumes:
+      - ".:/plugin:ro"
+    working_dir: /plugin
+
+  shellcheck:
+    image: koalaman/shellcheck-alpine:stable
+    volumes:
+      - ".:/plugin:ro"
+    working_dir: /plugin
+    command: ["shellcheck", "hooks/*"]

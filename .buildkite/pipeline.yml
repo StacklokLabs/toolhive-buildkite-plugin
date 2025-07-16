@@ -1,0 +1,52 @@
+steps:
+  - label: ":hammer_and_wrench: Setup"
+    command: |
+      echo "Setting up development environment..."
+      task dev-setup
+
+  - label: ":mag: Validate Plugin"
+    command: |
+      echo "Validating plugin configuration..."
+      task validate
+
+  - label: ":shell: Syntax Check"
+    command: |
+      echo "Checking shell script syntax..."
+      task syntax-check
+
+  - label: ":lint-roller: Plugin Linter"
+    command: |
+      echo "Running Buildkite plugin linter..."
+      task lint
+
+  - label: ":bug: ShellCheck"
+    command: |
+      echo "Running ShellCheck on hooks..."
+      task shellcheck
+
+  - label: ":test_tube: BATS Tests"
+    command: |
+      echo "Running BATS tests..."
+      task test
+
+  - label: ":white_check_mark: All Checks"
+    depends_on:
+      - "validate-plugin"
+      - "syntax-check"
+      - "plugin-linter"
+      - "shellcheck"
+      - "bats-tests"
+    command: |
+      echo "✅ All checks passed successfully!"
+      echo "Plugin is ready for release"
+
+  - label: ":package: Test Plugin Usage"
+    command: |
+      echo "Testing plugin with a simple MCP server..."
+      echo "This would normally test the plugin in a real pipeline"
+    plugins:
+      - ./.:
+          server: "fetch"
+          name: "test-fetch-server"
+          cleanup: true
+    if: build.branch == "main"

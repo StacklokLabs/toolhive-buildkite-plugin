@@ -1,0 +1,203 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "--- :rocket: Starting ToolHive MCP Server"
+
+# Ensure ToolHive is available
+if ! command -v thv >/dev/null 2>&1; then
+    echo "Error: ToolHive (thv) not found in PATH" >&2
+    exit 1
+fi
+
+# Get plugin configuration
+SERVER="${BUILDKITE_PLUGIN_TOOLHIVE_SERVER:-}"
+CUSTOM_NAME="${BUILDKITE_PLUGIN_TOOLHIVE_NAME:-}"
+TRANSPORT="${BUILDKITE_PLUGIN_TOOLHIVE_TRANSPORT:-}"
+PROXY_PORT="${BUILDKITE_PLUGIN_TOOLHIVE_PROXY_PORT:-}"
+PERMISSION_PROFILE="${BUILDKITE_PLUGIN_TOOLHIVE_PERMISSION_PROFILE:-}"
+
+# Validate required configuration
+if [[ -z "$SERVER" ]]; then
+    echo "Error: 'server' configuration is required" >&2
+    exit 1
+fi
+
+# Generate a normalized server name based on the step
+generate_server_name() {
+    local base_name="$1"
+    local step_key="${BUILDKITE_STEP_KEY:-}"
+    local job_id="${BUILDKITE_JOB_ID:-}"
+    local build_number="${BUILDKITE_BUILD_NUMBER:-}"
+    
+    # Use custom name if provided
+    if [[ -n "$CUSTOM_NAME" ]]; then
+        echo "$CUSTOM_NAME"
+        return
+    fi
+    
+    # Create a unique name based on step context
+    local name_parts=()
+    
+    # Add build number if available
+    if [[ -n "$build_number" ]]; then
+        name_parts+=("build-$build_number")
+    fi
+    
+    # Add step key if available, otherwise use job ID
+    if [[ -n "$step_key" ]]; then
+        name_parts+=("step-$step_key")
+    elif [[ -n "$job_id" ]]; then
+        name_parts+=("job-${job_id:0:8}")  # Use first 8 chars of job ID
+    fi
+    
+    # Add base server name
+    name_parts+=("$base_name")
+    
+    # Join with hyphens and normalize (remove special chars, lowercase)
+    local full_name
+    full_name=$(IFS='-'; echo "${name_parts[*]}")
+    full_name=$(echo "$full_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
+    
+    echo "$full_name"
+}
+
+# Extract server name from various formats
+extract_server_name() {
+    local server="$1"
+    
+    # First check if it's in the ToolHive registry
+    if thv registry info "$server" >/dev/null 2>&1; then
+        # It's a registry server, use the name as-is
+        echo "$server"
+        return
+    fi
+    
+    # Handle protocol schemes (uvx://, npx://, go://)
+    if [[ "$server" =~ ^(uvx|npx|go):// ]]; then
+        # Extract package name from protocol scheme
+        local package_part
+        package_part=$(echo "$server" | sed 's|^[^:]*://||' | sed 's|@.*||')
+        # Get the last part after any slashes (package name)
+        echo "${package_part##*/}"
+        return
+    fi
+    
+    # Handle Docker images (registry/image:tag)
+    if [[ "$server" =~ : && ! "$server" =~ ^[a-z]+:// ]]; then
+        # Extract image name without registry and tag
+        local image_part
+        image_part=$(echo "$server" | sed 's|.*/||' | sed 's|:.*||')
+        echo "$image_part"
+        return
+    fi
+    
+    # Fallback: assume it's a Docker image reference
+    # Extract the last part after any slashes
+    echo "${server##*/}"
+}
+
+# Generate the MCP server name
+base_server_name=$(extract_server_name "$SERVER")
+MCP_SERVER_NAME=$(generate_server_name "$base_server_name")
+
+echo "MCP Server: $SERVER"
+echo "Instance Name: $MCP_SERVER_NAME"
+
+# Store the server name for cleanup
+export BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAME="$MCP_SERVER_NAME"
+
+# Build the thv run command
+THV_CMD=("thv" "run" "--name" "$MCP_SERVER_NAME")
+
+# Add transport if specified
+if [[ -n "$TRANSPORT" ]]; then
+    THV_CMD+=("--transport" "$TRANSPORT")
+fi
+
+# Add proxy port if specified
+if [[ -n "$PROXY_PORT" ]]; then
+    THV_CMD+=("--proxy-port" "$PROXY_PORT")
+fi
+
+# Add permission profile if specified
+if [[ -n "$PERMISSION_PROFILE" ]]; then
+    THV_CMD+=("--permission-profile" "$PERMISSION_PROFILE")
+fi
+
+# Add secrets
+secret_count=0
+while IFS= read -r secret_config; do
+    if [[ -n "$secret_config" ]]; then
+        # Parse secret configuration (name,target=ENV_VAR)
+        if [[ "$secret_config" =~ ^([^,]+),target=(.+)$ ]]; then
+            secret_name="${BASH_REMATCH[1]}"
+            target_env="${BASH_REMATCH[2]}"
+            THV_CMD+=("--secret" "${secret_name},target=${target_env}")
+            echo "Added secret: $secret_name -> $target_env"
+        else
+            echo "Warning: Invalid secret format: $secret_config (expected: name,target=ENV_VAR)" >&2
+        fi
+    fi
+    ((secret_count++))
+done < <(env | grep "^BUILDKITE_PLUGIN_TOOLHIVE_SECRETS_${secret_count}_" | cut -d= -f2- || true)
+
+# Add volumes
+volume_count=0
+while IFS= read -r volume; do
+    if [[ -n "$volume" ]]; then
+        THV_CMD+=("--volume" "$volume")
+        echo "Added volume: $volume"
+    fi
+    ((volume_count++))
+done < <(env | grep "^BUILDKITE_PLUGIN_TOOLHIVE_VOLUMES_${volume_count}=" | cut -d= -f2- || true)
+
+# Add the server
+THV_CMD+=("$SERVER")
+
+# Add additional arguments
+arg_count=0
+args=()
+while IFS= read -r arg; do
+    if [[ -n "$arg" ]]; then
+        args+=("$arg")
+    fi
+    ((arg_count++))
+done < <(env | grep "^BUILDKITE_PLUGIN_TOOLHIVE_ARGS_${arg_count}=" | cut -d= -f2- || true)
+
+if [[ ${#args[@]} -gt 0 ]]; then
+    THV_CMD+=("--")
+    THV_CMD+=("${args[@]}")
+    echo "Added arguments: ${args[*]}"
+fi
+
+# Check if server is already running
+if thv list --all | grep -q "^$MCP_SERVER_NAME "; then
+    echo "MCP server '$MCP_SERVER_NAME' is already running, stopping it first..."
+    thv stop "$MCP_SERVER_NAME" || true
+    thv rm "$MCP_SERVER_NAME" || true
+fi
+
+# Start the MCP server
+echo "Starting MCP server with command: ${THV_CMD[*]}"
+"${THV_CMD[@]}"
+
+# Wait a moment for the server to start
+sleep 2
+
+# Verify the server is running
+if thv list | grep -q "^$MCP_SERVER_NAME "; then
+    echo "✅ MCP server '$MCP_SERVER_NAME' started successfully"
+    
+    # Show server details
+    thv list | grep "^$MCP_SERVER_NAME " || true
+else
+    echo "❌ Failed to start MCP server '$MCP_SERVER_NAME'" >&2
+    
+    # Show logs for debugging
+    echo "Server logs:"
+    thv logs "$MCP_SERVER_NAME" || true
+    
+    exit 1
+fi
+
+echo "MCP server setup complete"

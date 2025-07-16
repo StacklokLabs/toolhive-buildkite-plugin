@@ -1,0 +1,136 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "--- :toolbox: Setting up ToolHive environment"
+
+# Function to detect OS and architecture
+detect_platform() {
+    local os=""
+    local arch=""
+    
+    # Detect OS
+    case "$(uname -s)" in
+        Linux*)     os="linux";;
+        Darwin*)    os="darwin";;
+        CYGWIN*|MINGW*|MSYS*) os="windows";;
+        *)          echo "Unsupported OS: $(uname -s)" >&2; exit 1;;
+    esac
+    
+    # Detect architecture
+    case "$(uname -m)" in
+        x86_64|amd64)   arch="amd64";;
+        arm64|aarch64)  arch="arm64";;
+        armv7l)         arch="arm";;
+        i386|i686)      arch="386";;
+        *)              echo "Unsupported architecture: $(uname -m)" >&2; exit 1;;
+    esac
+    
+    echo "${os}_${arch}"
+}
+
+# Function to get the latest ToolHive version from GitHub
+get_latest_version() {
+    local version="${BUILDKITE_PLUGIN_TOOLHIVE_TOOLHIVE_VERSION:-}"
+    
+    if [[ -n "$version" ]]; then
+        echo "$version"
+        return
+    fi
+    
+    # Try to get latest version from GitHub API
+    if command -v curl >/dev/null 2>&1; then
+        local latest_version
+        latest_version=$(curl -s https://api.github.com/repos/stacklok/toolhive/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/' || echo "")
+        if [[ -n "$latest_version" ]]; then
+            echo "$latest_version"
+            return
+        fi
+    fi
+    
+    # Fallback to a known stable version
+    echo "v0.1.8"
+}
+
+# Function to download and install ToolHive
+install_toolhive() {
+    local platform="$1"
+    local version="$2"
+    local install_dir="${HOME}/.local/bin"
+    local thv_path="${install_dir}/thv"
+    
+    echo "Installing ToolHive ${version} for ${platform}..."
+    
+    # Create install directory
+    mkdir -p "$install_dir"
+    
+    # Determine file extension
+    local ext=""
+    if [[ "$platform" == *"windows"* ]]; then
+        ext=".exe"
+        thv_path="${thv_path}.exe"
+    fi
+    
+    # Download URL
+    local download_url="https://github.com/stacklok/toolhive/releases/download/${version}/thv_${platform}${ext}"
+    
+    echo "Downloading from: $download_url"
+    
+    # Download with retry logic
+    local max_retries=3
+    local retry=0
+    
+    while [[ $retry -lt $max_retries ]]; do
+        if curl -fsSL "$download_url" -o "$thv_path"; then
+            break
+        fi
+        
+        retry=$((retry + 1))
+        if [[ $retry -lt $max_retries ]]; then
+            echo "Download failed, retrying in 5 seconds... (attempt $retry/$max_retries)"
+            sleep 5
+        else
+            echo "Failed to download ToolHive after $max_retries attempts" >&2
+            exit 1
+        fi
+    done
+    
+    # Make executable
+    chmod +x "$thv_path"
+    
+    echo "ToolHive installed successfully at: $thv_path"
+}
+
+# Check if ToolHive is already available
+if command -v thv >/dev/null 2>&1; then
+    echo "ToolHive is already available in PATH"
+    thv --version
+else
+    echo "ToolHive not found in PATH, installing..."
+    
+    # Detect platform and get version
+    platform=$(detect_platform)
+    version=$(get_latest_version)
+    
+    echo "Detected platform: $platform"
+    echo "Target version: $version"
+    
+    # Install ToolHive
+    install_toolhive "$platform" "$version"
+    
+    # Add to PATH for this session
+    export PATH="${HOME}/.local/bin:${PATH}"
+    
+    # Verify installation
+    if command -v thv >/dev/null 2>&1; then
+        echo "ToolHive installation verified:"
+        thv --version
+    else
+        echo "ToolHive installation failed - command not found after installation" >&2
+        exit 1
+    fi
+fi
+
+# Export PATH for subsequent hooks and commands
+export PATH="${HOME}/.local/bin:${PATH}"
+
+echo "ToolHive environment setup complete"

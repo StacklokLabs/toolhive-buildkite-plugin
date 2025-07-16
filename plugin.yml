@@ -1,0 +1,58 @@
+name: ToolHive
+description: Run Model Context Protocol (MCP) servers using ToolHive in Buildkite pipelines
+author: https://stacklok.com/
+requirements:
+  - docker
+configuration:
+  properties:
+    server:
+      type: string
+      description: The MCP server to run (from registry, Docker image, or protocol scheme)
+    name:
+      type: string
+      description: Custom name for the MCP server instance (defaults to step-based name)
+    transport:
+      type: string
+      enum: ["", "stdio", "sse", "streamable-http"]
+      description: Transport method for the MCP server
+      # Defaults to empty string for automatic detection in case the
+      # MCP server comes from the registry.
+      default: ""
+    proxy-port:
+      type: integer
+      description: Specific port for the ToolHive proxy (defaults to random port)
+    secrets:
+      type: array
+      items:
+        type: object
+        properties:
+          name:
+            type: string
+            description: Name of the secret in ToolHive
+          target:
+            type: string
+            description: Environment variable name in the container
+        required: ["name", "target"]
+      description: Secrets to pass to the MCP server
+    volumes:
+      type: array
+      items:
+        type: string
+      description: Volume mounts in format "host-path:container-path[:ro]"
+    args:
+      type: array
+      items:
+        type: string
+      description: Additional arguments to pass to the MCP server
+    permission-profile:
+      type: string
+      description: Permission profile for the MCP server
+    toolhive-version:
+      type: string
+      description: Specific version of ToolHive to download (defaults to latest)
+    cleanup:
+      type: boolean
+      description: Whether to clean up the MCP server on exit
+      default: true
+  required: ["server"]
+  additionalProperties: false

@@ -1,0 +1,72 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  test:
+    desc: Run BATS tests using Docker
+    cmds:
+      - echo "Running BATS tests..."
+      - docker-compose run --rm tests
+
+  lint:
+    desc: Run Buildkite plugin linter
+    cmds:
+      - echo "Running Buildkite plugin linter..."
+      - docker-compose run --rm lint
+
+  shellcheck:
+    desc: Run shellcheck on hook scripts
+    cmds:
+      - echo "Running shellcheck on hooks..."
+      - docker-compose run --rm shellcheck
+
+  all:
+    desc: Run all checks (lint, shellcheck, test)
+    deps: [lint, shellcheck, test]
+
+  clean:
+    desc: Clean up Docker containers and images
+    cmds:
+      - echo "Cleaning up Docker resources..."
+      - docker-compose down --volumes --remove-orphans
+      - docker system prune -f
+
+  executable:
+    desc: Make hooks executable (useful after git clone)
+    cmds:
+      - echo "Making hooks executable..."
+      - chmod +x hooks/*
+
+  validate:
+    desc: Validate plugin.yml syntax
+    cmds:
+      - echo "Validating plugin.yml..."
+      - python3 -c "import yaml; yaml.safe_load(open('plugin.yml'))"
+      - echo "✅ plugin.yml is valid"
+
+  syntax-check:
+    desc: Run basic syntax check on hooks
+    cmds:
+      - echo "Checking hook syntax..."
+      - |
+        for hook in hooks/*; do
+          echo "Checking $hook..."
+          bash -n "$hook" || exit 1
+        done
+      - echo "✅ All hooks have valid syntax"
+
+  dev-setup:
+    desc: Set up development environment
+    deps: [executable, validate, syntax-check]
+    cmds:
+      - echo "✅ Development environment ready"
+
+  ci:
+    desc: Run CI checks (for use in CI/CD)
+    deps: [validate, syntax-check, lint, shellcheck, test]
+    cmds:
+      - echo "✅ All CI checks passed"
