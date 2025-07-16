@@ -49,16 +49,6 @@ cleanup_server() {
     if thv list --all 2>/dev/null | grep -q "^$server_name "; then
         echo "Found MCP server '$server_name', proceeding with cleanup..."
         
-        # Stop the server if it's running
-        if thv list 2>/dev/null | grep -q "^$server_name "; then
-            echo "Stopping MCP server '$server_name'..."
-            if safe_thv_command "thv stop" "$server_name"; then
-                echo "✅ MCP server '$server_name' stopped successfully"
-            fi
-        else
-            echo "MCP server '$server_name' is already stopped"
-        fi
-        
         # Remove the server container
         echo "Removing MCP server '$server_name'..."
         if safe_thv_command "thv rm" "$server_name"; then
