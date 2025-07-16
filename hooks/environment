@@ -103,7 +103,7 @@ install_toolhive() {
 # Check if ToolHive is already available
 if command -v thv >/dev/null 2>&1; then
     echo "ToolHive is already available in PATH"
-    thv --version
+    thv version
 else
     echo "ToolHive not found in PATH, installing..."
     
@@ -123,7 +123,7 @@ else
     # Verify installation
     if command -v thv >/dev/null 2>&1; then
         echo "ToolHive installation verified:"
-        thv --version
+        thv version
     else
         echo "ToolHive installation failed - command not found after installation" >&2
         exit 1
