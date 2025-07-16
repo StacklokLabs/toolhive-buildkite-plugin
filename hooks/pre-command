@@ -103,8 +103,13 @@ MCP_SERVER_NAME=$(generate_server_name "$base_server_name")
 echo "MCP Server: $SERVER"
 echo "Instance Name: $MCP_SERVER_NAME"
 
-# Store the server name for cleanup
-export BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAME="$MCP_SERVER_NAME"
+# Store the server name for cleanup (append to list for multiple servers)
+EXISTING_SERVERS="${BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES:-}"
+if [[ -n "$EXISTING_SERVERS" ]]; then
+    export BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES="$EXISTING_SERVERS,$MCP_SERVER_NAME"
+else
+    export BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES="$MCP_SERVER_NAME"
+fi
 
 # Build the thv run command
 THV_CMD=("thv" "run" "--name" "$MCP_SERVER_NAME")

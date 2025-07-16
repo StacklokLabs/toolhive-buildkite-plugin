@@ -11,21 +11,21 @@ if [[ "$CLEANUP_ENABLED" != "true" ]]; then
     exit 0
 fi
 
-# Get the MCP server name that was stored during pre-command
-MCP_SERVER_NAME="${BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAME:-}"
+# Get the MCP server names that were stored during pre-command
+MCP_SERVER_NAMES="${BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES:-}"
 
-if [[ -z "$MCP_SERVER_NAME" ]]; then
-    echo "No MCP server name found, nothing to clean up"
+if [[ -z "$MCP_SERVER_NAMES" ]]; then
+    echo "No MCP server names found, nothing to clean up"
     exit 0
 fi
+
+echo "Found MCP servers to clean up: $MCP_SERVER_NAMES"
 
 # Ensure ToolHive is available
 if ! command -v thv >/dev/null 2>&1; then
     echo "Warning: ToolHive (thv) not found in PATH, cannot clean up MCP server" >&2
     exit 0
 fi
-
-echo "Cleaning up MCP server: $MCP_SERVER_NAME"
 
 # Function to safely execute thv commands with error handling
 safe_thv_command() {
@@ -39,37 +39,54 @@ safe_thv_command() {
     return 0
 }
 
-# Check if the server exists
-if thv list --all 2>/dev/null | grep -q "^$MCP_SERVER_NAME "; then
-    echo "Found MCP server '$MCP_SERVER_NAME', proceeding with cleanup..."
+# Function to clean up a single server
+cleanup_server() {
+    local server_name="$1"
     
-    # Stop the server if it's running
-    if thv list 2>/dev/null | grep -q "^$MCP_SERVER_NAME "; then
-        echo "Stopping MCP server '$MCP_SERVER_NAME'..."
-        if safe_thv_command "thv stop" "$MCP_SERVER_NAME"; then
-            echo "✅ MCP server stopped successfully"
+    echo "Cleaning up MCP server: $server_name"
+    
+    # Check if the server exists
+    if thv list --all 2>/dev/null | grep -q "^$server_name "; then
+        echo "Found MCP server '$server_name', proceeding with cleanup..."
+        
+        # Stop the server if it's running
+        if thv list 2>/dev/null | grep -q "^$server_name "; then
+            echo "Stopping MCP server '$server_name'..."
+            if safe_thv_command "thv stop" "$server_name"; then
+                echo "✅ MCP server '$server_name' stopped successfully"
+            fi
+        else
+            echo "MCP server '$server_name' is already stopped"
+        fi
+        
+        # Remove the server container
+        echo "Removing MCP server '$server_name'..."
+        if safe_thv_command "thv rm" "$server_name"; then
+            echo "✅ MCP server '$server_name' removed successfully"
+        fi
+        
+        # Verify cleanup
+        if ! thv list --all 2>/dev/null | grep -q "^$server_name "; then
+            echo "✅ Cleanup completed successfully for '$server_name'"
+        else
+            echo "⚠️  Server '$server_name' may still exist after cleanup"
         fi
     else
-        echo "MCP server '$MCP_SERVER_NAME' is already stopped"
+        echo "MCP server '$server_name' not found, nothing to clean up"
     fi
-    
-    # Remove the server container
-    echo "Removing MCP server '$MCP_SERVER_NAME'..."
-    if safe_thv_command "thv rm" "$MCP_SERVER_NAME"; then
-        echo "✅ MCP server removed successfully"
+}
+
+# Clean up all servers (comma-separated list)
+IFS=',' read -ra SERVER_ARRAY <<< "$MCP_SERVER_NAMES"
+for server_name in "${SERVER_ARRAY[@]}"; do
+    # Trim whitespace
+    server_name=$(echo "$server_name" | xargs)
+    if [[ -n "$server_name" ]]; then
+        cleanup_server "$server_name"
     fi
-    
-    # Verify cleanup
-    if ! thv list --all 2>/dev/null | grep -q "^$MCP_SERVER_NAME "; then
-        echo "✅ Cleanup completed successfully"
-    else
-        echo "⚠️  Server may still exist after cleanup"
-    fi
-else
-    echo "MCP server '$MCP_SERVER_NAME' not found, nothing to clean up"
-fi
+done
 
 # Clean up the environment variable
-unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAME
+unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES
 
 echo "MCP server cleanup complete"

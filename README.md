@@ -258,6 +258,37 @@ steps:
               target: "GITHUB_PERSONAL_ACCESS_TOKEN"
 ```
 
+### Multiple MCP Servers in One Step
+
+You can run multiple MCP servers in a single step by calling the plugin multiple times:
+
+```yaml
+steps:
+  - label: "Use Multiple MCP Servers"
+    command: |
+      echo "Both servers are now running"
+      curl http://localhost:8080/fetch-endpoint
+      curl http://localhost:8081/github-endpoint
+    plugins:
+      - stacklok/toolhive#v0.0.1:
+          server: "fetch"
+          name: "fetch-server"
+          proxy-port: 8080
+      - stacklok/toolhive#v0.0.1:
+          server: "github"
+          name: "github-server"
+          proxy-port: 8081
+          secrets:
+            - name: "github-token"
+              target: "GITHUB_PERSONAL_ACCESS_TOKEN"
+```
+
+**Important Notes for Multiple Servers:**
+- Each server must have a unique `name` to avoid conflicts
+- Each server should use a different `proxy-port` if specified
+- All servers will be automatically cleaned up at the end of the step
+- Servers are started in the order they appear in the plugin list
+
 ## Contributing
 
 1. Fork the repository
