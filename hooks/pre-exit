@@ -79,4 +79,29 @@ done
 # Clean up the environment variable
 unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES
 
+# Clean up MCP configuration file if configured
+MCP_CONFIG_FILES="${BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILES:-}"
+MCP_CONFIG_CLEANUP_SETTING="${BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_CLEANUP_SETTING:-true}"
+
+if [[ -n "$MCP_CONFIG_FILES" && "$MCP_CONFIG_CLEANUP_SETTING" == "true" ]]; then
+    echo "Cleaning up MCP configuration files..."
+    
+    IFS=',' read -ra CONFIG_FILE_ARRAY <<< "$MCP_CONFIG_FILES"
+    for config_file in "${CONFIG_FILE_ARRAY[@]}"; do
+        # Trim whitespace
+        config_file=$(echo "$config_file" | xargs)
+        if [[ -n "$config_file" && -f "$config_file" ]]; then
+            echo "Removing MCP config file: $config_file"
+            rm -f "$config_file" || echo "Warning: Failed to remove $config_file"
+        fi
+    done
+    
+    # Clean up environment variables
+    unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILES
+    unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_CLEANUP_SETTING
+    unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE
+else
+    echo "MCP config file cleanup disabled or no files to clean up"
+fi
+
 echo "MCP server cleanup complete"

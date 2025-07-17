@@ -82,6 +82,48 @@ load "$BATS_PLUGIN_PATH/load.bash"
   unstub thv
 }
 
+@test "Pre-exit hook cleans up MCP configuration file when enabled" {
+  export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILES="./test_mcp_config.json"
+  export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_CLEANUP_SETTING="true"
+  
+  # Create a temporary config file
+  echo '{"mcpServers": {}}' > "./test_mcp_config.json"
+  
+  # Verify file exists before cleanup
+  [ -f "./test_mcp_config.json" ]
+  
+  run "$PWD/hooks/pre-exit"
+  
+  assert_success
+  assert_output --partial "Cleaning up MCP configuration files..."
+  assert_output --partial "Removing MCP config file: ./test_mcp_config.json"
+  
+  # Verify file was removed
+  [ ! -f "./test_mcp_config.json" ]
+}
+
+@test "Pre-exit hook skips MCP config cleanup when disabled" {
+  export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILES="./test_mcp_config.json"
+  export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_CLEANUP_SETTING="false"
+  
+  # Create a temporary config file
+  echo '{"mcpServers": {}}' > "./test_mcp_config.json"
+  
+  # Verify file exists before cleanup
+  [ -f "./test_mcp_config.json" ]
+  
+  run "$PWD/hooks/pre-exit"
+  
+  assert_success
+  assert_output --partial "MCP config file cleanup disabled or no files to clean up"
+  
+  # Verify file still exists
+  [ -f "./test_mcp_config.json" ]
+  
+  # Clean up manually
+  rm -f "./test_mcp_config.json"
+}
+
 @test "Pre-exit hook handles non-existent server gracefully" {
   export BUILDKITE_PLUGIN_TOOLHIVE_CLEANUP="true"
   export BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAME="non-existent-server"

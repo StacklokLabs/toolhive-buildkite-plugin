@@ -15,6 +15,8 @@ CUSTOM_NAME="${BUILDKITE_PLUGIN_TOOLHIVE_NAME:-}"
 TRANSPORT="${BUILDKITE_PLUGIN_TOOLHIVE_TRANSPORT:-}"
 PROXY_PORT="${BUILDKITE_PLUGIN_TOOLHIVE_PROXY_PORT:-}"
 PERMISSION_PROFILE="${BUILDKITE_PLUGIN_TOOLHIVE_PERMISSION_PROFILE:-}"
+MCP_CONFIG_FILE="${BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE:-./mcp_servers.json}"
+MCP_CONFIG_CLEANUP="${BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_CLEANUP:-true}"
 
 # Validate required configuration
 if [[ -z "$SERVER" ]]; then
@@ -113,6 +115,27 @@ fi
 
 # Build the thv run command
 THV_CMD=("thv" "run" "--name" "$MCP_SERVER_NAME")
+
+# Add label for pipeline identification
+build_number="${BUILDKITE_BUILD_NUMBER:-}"
+step_key="${BUILDKITE_STEP_KEY:-}"
+job_id="${BUILDKITE_JOB_ID:-}"
+
+# Create a single label with pipeline info
+pipeline_label="buildkite.pipeline="
+if [[ -n "$build_number" ]]; then
+    pipeline_label+="build-$build_number"
+fi
+if [[ -n "$step_key" ]]; then
+    pipeline_label+="-step-$step_key"
+fi
+if [[ -n "$job_id" ]]; then
+    pipeline_label+="-job-${job_id:0:8}"  # Use first 8 chars of job ID
+fi
+
+if [[ "$pipeline_label" != "buildkite.pipeline=" ]]; then
+    THV_CMD+=("--label" "$pipeline_label")
+fi
 
 # Add transport if specified
 if [[ -n "$TRANSPORT" ]]; then
@@ -234,5 +257,68 @@ if [[ $attempt -gt $max_attempts ]]; then
     
     exit 1
 fi
+
+# Generate MCP configuration file
+echo "Generating MCP configuration file..."
+
+# Function to generate or update MCP configuration file
+generate_mcp_config() {
+    local config_file="$1"
+    
+    # Use thv list --format=mcpservers with label filtering to get servers from this pipeline
+    local mcp_config
+    if [[ "$pipeline_label" != "buildkite.pipeline=" ]]; then
+        # Extract the label key and value for filtering
+        local label_key="buildkite.pipeline"
+        local label_value="${pipeline_label#buildkite.pipeline=}"
+        
+        echo "Filtering MCP servers with label: $label_key=$label_value"
+        if mcp_config=$(thv list --format=mcpservers -l "$label_key=$label_value" 2>/dev/null); then
+            echo "Retrieved MCP server configuration from toolhive"
+            
+            # Write the configuration to file
+            echo "$mcp_config" > "$config_file"
+            
+            echo "✅ MCP configuration file generated: $config_file"
+            echo "Configuration content:"
+            cat "$config_file"
+        else
+            echo "⚠️  Failed to retrieve MCP server configuration with label filtering, trying without filter"
+            if mcp_config=$(thv list --format=mcpservers 2>/dev/null); then
+                echo "$mcp_config" > "$config_file"
+                echo "✅ MCP configuration file generated: $config_file"
+                echo "Configuration content:"
+                cat "$config_file"
+            else
+                echo "❌ Failed to retrieve MCP server configuration from toolhive"
+                # Create empty mcpServers object
+                echo '{"mcpServers": {}}' > "$config_file"
+            fi
+        fi
+    else
+        echo "No pipeline label available, getting all MCP servers"
+        if mcp_config=$(thv list --format=mcpservers 2>/dev/null); then
+            echo "$mcp_config" > "$config_file"
+            echo "✅ MCP configuration file generated: $config_file"
+            echo "Configuration content:"
+            cat "$config_file"
+        else
+            echo "❌ Failed to retrieve MCP server configuration from toolhive"
+            # Create empty mcpServers object
+            echo '{"mcpServers": {}}' > "$config_file"
+        fi
+    fi
+}
+
+# Generate the MCP configuration
+generate_mcp_config "$MCP_CONFIG_FILE"
+
+# Export environment variable pointing to the MCP config file
+export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE="$MCP_CONFIG_FILE"
+echo "Exported BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE=$MCP_CONFIG_FILE"
+
+# Store MCP config file path and cleanup setting for cleanup
+export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILES="$MCP_CONFIG_FILE"
+export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_CLEANUP_SETTING="$MCP_CONFIG_CLEANUP"
 
 echo "MCP server setup complete"

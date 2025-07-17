@@ -44,6 +44,45 @@ load "$BATS_PLUGIN_PATH/load.bash"
   unstub thv
 }
 
+@test "Pre-command hook generates MCP configuration file" {
+  export BUILDKITE_PLUGIN_TOOLHIVE_SERVER="fetch"
+  export BUILDKITE_BUILD_NUMBER="123"
+  export BUILDKITE_STEP_KEY="test-step"
+  export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE="./test_mcp_config.json"
+  
+  # Create a temporary directory for the test
+  temp_dir=$(mktemp -d)
+  cd "$temp_dir"
+  
+  stub thv \
+    'registry info fetch : exit 0' \
+    'list --all : echo ""' \
+    'run --name build-123-step-test-step-fetch --label buildkite.pipeline=build-123-step-test-step fetch : echo "Server started"' \
+    'list --all : echo "build-123-step-test-step-fetch running stdio 8080 http://localhost:8080"' \
+    'list --format=mcpservers -l buildkite.pipeline=build-123-step-test-step : echo "{\"mcpServers\":{\"build-123-step-test-step-fetch\":{\"url\":\"http://localhost:8080/mcp\",\"type\":\"streamable-http\"}}}"'
+  
+  run "$OLDPWD/hooks/pre-command"
+  
+  assert_success
+  assert_output --partial "✅ MCP configuration file generated: ./test_mcp_config.json"
+  assert_output --partial "Exported BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE=./test_mcp_config.json"
+  
+  # Check that the config file was created
+  [ -f "./test_mcp_config.json" ]
+  
+  # Check the content of the config file
+  run cat "./test_mcp_config.json"
+  assert_output --partial '"mcpServers"'
+  assert_output --partial '"build-123-step-test-step-fetch"'
+  
+  # Clean up
+  rm -f "./test_mcp_config.json"
+  cd "$OLDPWD"
+  rmdir "$temp_dir"
+  
+  unstub thv
+}
+
 @test "Pre-command hook uses custom name when provided" {
   export BUILDKITE_PLUGIN_TOOLHIVE_SERVER="fetch"
   export BUILDKITE_PLUGIN_TOOLHIVE_NAME="my-custom-server"

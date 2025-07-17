@@ -54,5 +54,13 @@ configuration:
       type: boolean
       description: Whether to clean up the MCP server on exit
       default: true
+    mcp-config-file:
+      type: string
+      description: Path where to generate the MCP config file
+      default: "./mcp_servers.json"
+    mcp-config-cleanup:
+      type: boolean
+      description: Whether to remove the MCP config file on exit
+      default: true
   required: ["server"]
   additionalProperties: false

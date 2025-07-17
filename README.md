@@ -101,6 +101,8 @@ steps:
 | `permission-profile` | String | Default | Permission profile for the MCP server |
 | `toolhive-version` | String | Latest | Specific version of ToolHive to download |
 | `cleanup` | Boolean | `true` | Whether to clean up the MCP server on exit |
+| `mcp-config-file` | String | `./mcp_servers.json` | Path where to generate the MCP config file |
+| `mcp-config-cleanup` | Boolean | `true` | Whether to remove the MCP config file on exit |
 
 ### Secrets Configuration
 
@@ -155,6 +157,67 @@ Use package managers to run MCP servers:
 server: "uvx://python-mcp-package@1.0.0"    # Python via uv
 server: "npx://node-mcp-package@2.0.0"      # Node.js via npm
 server: "go://github.com/org/go-mcp-server"  # Go module
+```
+
+## MCP Configuration File Generation
+
+The plugin automatically generates an MCP configuration file that contains connection details for all spawned MCP servers. This makes it easy for MCP clients to discover and connect to available servers.
+
+### Configuration File Format
+
+The generated file follows the standard MCP configuration format:
+
+```json
+{
+  "mcpServers": {
+    "fetch-server": {
+      "url": "http://localhost:8080/mcp",
+      "type": "streamable-http"
+    },
+    "github-server": {
+      "url": "http://localhost:8081/sse#github-server",
+      "type": "sse"
+    }
+  }
+}
+```
+
+### URL Format Details
+
+- **SSE servers**: `http://localhost:{port}/sse#{server-name}`
+- **Streamable HTTP servers**: `http://localhost:{port}/mcp`
+- **Type**: Either `"sse"` or `"streamable-http"`
+
+### Environment Variable
+
+The plugin exports `BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE` pointing to the generated configuration file:
+
+```bash
+echo "MCP config file: $BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE"
+cat $BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE
+```
+
+### Usage with MCP Clients
+
+```yaml
+steps:
+  - command: |
+      # Use the generated MCP configuration with your tools
+      my-mcp-client --config $BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE
+      
+      # Or read the configuration programmatically
+      python -c "
+      import json
+      import os
+      config_file = os.environ['BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILE']
+      with open(config_file) as f:
+          config = json.load(f)
+          print('Available MCP servers:', list(config['mcpServers'].keys()))
+      "
+    plugins:
+      - StacklokLabs/toolhive#v0.0.1:
+          server: "fetch"
+          mcp-config-file: "./my_mcp_config.json"
 ```
 
 ## How It Works
@@ -236,6 +299,8 @@ steps:
           permission-profile: "network"
           toolhive-version: "v0.0.33"
           cleanup: true
+          mcp-config-file: "./custom_mcp_config.json"
+          mcp-config-cleanup: false
 ```
 
 ### Multiple Steps with Different Servers
