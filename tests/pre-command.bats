@@ -33,7 +33,7 @@ load "$BATS_PLUGIN_PATH/load.bash"
     'registry info fetch : exit 0' \
     'list --all : echo ""' \
     'run --name build-123-step-test-step-fetch fetch : echo "Server started"' \
-    'list : echo "build-123-step-test-step-fetch running stdio 8080 http://localhost:8080"'
+    'list --all : echo "build-123-step-test-step-fetch running stdio 8080 http://localhost:8080"'
   
   run "$PWD/hooks/pre-command"
   
@@ -52,7 +52,7 @@ load "$BATS_PLUGIN_PATH/load.bash"
     'registry info fetch : exit 0' \
     'list --all : echo ""' \
     'run --name my-custom-server fetch : echo "Server started"' \
-    'list : echo "my-custom-server running stdio 8080 http://localhost:8080"'
+    'list --all : echo "my-custom-server running stdio 8080 http://localhost:8080"'
   
   run "$PWD/hooks/pre-command"
   
@@ -71,7 +71,7 @@ load "$BATS_PLUGIN_PATH/load.bash"
     'registry info my-registry/my-mcp:latest : exit 1' \
     'list --all : echo ""' \
     'run --name build-123-my-mcp my-registry/my-mcp:latest : echo "Server started"' \
-    'list : echo "build-123-my-mcp running stdio 8080 http://localhost:8080"'
+    'list --all : echo "build-123-my-mcp running stdio 8080 http://localhost:8080"'
   
   run "$PWD/hooks/pre-command"
   
@@ -90,7 +90,7 @@ load "$BATS_PLUGIN_PATH/load.bash"
     'registry info uvx://some-python-package@1.0.0 : exit 1' \
     'list --all : echo ""' \
     'run --name build-123-some-python-package uvx://some-python-package@1.0.0 : echo "Server started"' \
-    'list : echo "build-123-some-python-package running stdio 8080 http://localhost:8080"'
+    'list --all : echo "build-123-some-python-package running stdio 8080 http://localhost:8080"'
   
   run "$PWD/hooks/pre-command"
   
@@ -110,7 +110,7 @@ load "$BATS_PLUGIN_PATH/load.bash"
     'registry info fetch : exit 0' \
     'list --all : echo ""' \
     'run --name build-123-fetch --transport sse fetch : echo "Server started"' \
-    'list : echo "build-123-fetch running sse 8080 http://localhost:8080"'
+    'list --all : echo "build-123-fetch running sse 8080 http://localhost:8080"'
   
   run "$PWD/hooks/pre-command"
   
@@ -130,7 +130,7 @@ load "$BATS_PLUGIN_PATH/load.bash"
     'stop build-123-fetch : echo "Server stopped"' \
     'rm build-123-fetch : echo "Server removed"' \
     'run --name build-123-fetch fetch : echo "Server started"' \
-    'list : echo "build-123-fetch running stdio 8080 http://localhost:8080"'
+    'list --all : echo "build-123-fetch running stdio 8080 http://localhost:8080"'
   
   run "$PWD/hooks/pre-command"
   

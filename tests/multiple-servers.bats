@@ -16,7 +16,7 @@ load "$BATS_PLUGIN_PATH/load.bash"
     'registry info fetch : exit 0' \
     'list --all : echo ""' \
     'run --name fetch-server fetch : echo "Server started"' \
-    'list : echo "fetch-server running stdio 8080 http://localhost:8080"'
+    'list --all : echo "fetch-server running stdio 8080 http://localhost:8080"'
   
   run "$PWD/hooks/pre-command"
   
@@ -36,7 +36,7 @@ load "$BATS_PLUGIN_PATH/load.bash"
     'registry info github : exit 0' \
     'list --all : echo ""' \
     'run --name github-server github : echo "Server started"' \
-    'list : echo "github-server running stdio 8081 http://localhost:8081"'
+    'list --all : echo "github-server running stdio 8081 http://localhost:8081"'
   
   run "$PWD/hooks/pre-command"
   

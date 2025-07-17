@@ -186,17 +186,47 @@ fi
 echo "Starting MCP server with command: ${THV_CMD[*]}"
 "${THV_CMD[@]}"
 
-# Wait a moment for the server to start
-sleep 2
+# Wait for the server to start with retry logic
+echo "Waiting for server to start..."
+max_attempts=3
+attempt=1
 
-# Verify the server is running
-if thv list | grep -q "^$MCP_SERVER_NAME "; then
-    echo "✅ MCP server '$MCP_SERVER_NAME' started successfully"
+while [[ $attempt -le $max_attempts ]]; do
+    echo "Checking server status (attempt $attempt/$max_attempts)..."
     
-    # Show server details
-    thv list | grep "^$MCP_SERVER_NAME " || true
-else
-    echo "❌ Failed to start MCP server '$MCP_SERVER_NAME'" >&2
+    # Check if server exists in any state
+    if server_status=$(thv list --all | grep "^$MCP_SERVER_NAME " || true); then
+        if [[ -n "$server_status" ]]; then
+            echo "Server found: $server_status"
+            
+            # Check if server is in running state
+            if echo "$server_status" | grep -q " running "; then
+                echo "✅ MCP server '$MCP_SERVER_NAME' started successfully"
+                echo "Server details: $server_status"
+                break
+            else
+                # Server exists but not running yet, wait a bit more
+                echo "Server exists but not running yet, waiting..."
+                sleep 1
+                ((attempt++))
+                continue
+            fi
+        fi
+    fi
+    
+    # Server not found at all, wait and retry
+    echo "Server not found yet, waiting..."
+    sleep 1
+    ((attempt++))
+done
+
+# Final verification
+if [[ $attempt -gt $max_attempts ]]; then
+    echo "❌ Failed to start MCP server '$MCP_SERVER_NAME' after $max_attempts attempts" >&2
+    
+    # Show current server status for debugging
+    echo "Current server list:"
+    thv list --all || true
     
     # Show logs for debugging
     echo "Server logs:"
