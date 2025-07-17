@@ -29,11 +29,11 @@ fi
 
 # Function to safely execute thv commands with error handling
 safe_thv_command() {
-    local cmd="$1"
+    local subcmd="$1"
     local server="$2"
     
-    if ! "$cmd" "$server" 2>/dev/null; then
-        echo "Warning: Failed to $cmd server '$server' (it may not exist or already be stopped)"
+    if ! thv "$subcmd" "$server" 2>/dev/null; then
+        echo "Warning: Failed to thv $subcmd server '$server' (it may not exist or already be stopped)"
         return 1
     fi
     return 0
@@ -51,7 +51,7 @@ cleanup_server() {
         
         # Remove the server container
         echo "Removing MCP server '$server_name'..."
-        if safe_thv_command "thv rm" "$server_name"; then
+        if safe_thv_command "rm" "$server_name"; then
             echo "✅ MCP server '$server_name' removed successfully"
         fi
         
