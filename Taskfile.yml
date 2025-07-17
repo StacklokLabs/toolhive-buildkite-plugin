@@ -1,5 +1,16 @@
 version: '3'
 
+vars:
+  CONTAINER_CMD:
+    sh: |
+      if command -v podman >/dev/null 2>&1; then
+        echo "podman"
+      elif command -v docker >/dev/null 2>&1; then
+        echo "docker"
+      else
+        echo "echo 'Error: No container runtime found (tried: podman, docker)' >&2 && exit 1"
+      fi
+
 tasks:
   default:
     desc: Show available tasks
@@ -7,33 +18,36 @@ tasks:
       - task --list
 
   test:
-    desc: Run BATS tests using Docker
+    desc: Run BATS tests using container runtime
     cmds:
       - echo "Running BATS tests..."
-      - docker-compose run --rm tests
+      - echo "Using container runtime{{":"}} {{.CONTAINER_CMD}}"
+      - "{{.CONTAINER_CMD}} run --rm -v .:/plugin:ro -w /plugin buildkite/plugin-tester"
 
   lint:
     desc: Run Buildkite plugin linter
     cmds:
       - echo "Running Buildkite plugin linter..."
-      - docker-compose run --rm lint
+      - echo "Using container runtime{{":"}} {{.CONTAINER_CMD}}"
+      - "{{.CONTAINER_CMD}} run --rm -v .:/plugin:ro -w /plugin buildkite/plugin-linter --id StacklokLabs/toolhive"
 
   shellcheck:
     desc: Run shellcheck on hook scripts
     cmds:
       - echo "Running shellcheck on hooks..."
-      - docker-compose run --rm shellcheck
+      - echo "Using container runtime{{":"}} {{.CONTAINER_CMD}}"
+      - "{{.CONTAINER_CMD}} run --rm -v .:/plugin:ro -w /plugin koalaman/shellcheck-alpine:stable shellcheck hooks/*"
 
   all:
     desc: Run all checks (lint, shellcheck, test)
     deps: [lint, shellcheck, test]
 
   clean:
-    desc: Clean up Docker containers and images
+    desc: Clean up containers and images
     cmds:
-      - echo "Cleaning up Docker resources..."
-      - docker-compose down --volumes --remove-orphans
-      - docker system prune -f
+      - echo "Cleaning up container resources..."
+      - echo "Using container runtime{{":"}} {{.CONTAINER_CMD}}"
+      - "{{.CONTAINER_CMD}} system prune -f"
 
   executable:
     desc: Make hooks executable (useful after git clone)
