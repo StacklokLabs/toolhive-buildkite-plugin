@@ -18,7 +18,7 @@ steps:
   - label: "Run with MCP Server"
     command: "your-command-here"
     plugins:
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "fetch"  # Server from ToolHive registry
 ```
 
@@ -29,7 +29,7 @@ steps:
   - label: "Use Fetch MCP Server"
     command: "curl http://localhost:8080/some-endpoint"
     plugins:
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "fetch"
           transport: "stdio"
           proxy-port: 8080
@@ -42,7 +42,7 @@ steps:
   - label: "Use Custom MCP Server"
     command: "your-command"
     plugins:
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "my-registry/my-mcp-server:latest"
           transport: "sse"
           volumes:
@@ -56,7 +56,7 @@ steps:
   - label: "Use Python MCP Server"
     command: "your-command"
     plugins:
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "uvx://some-python-mcp-package@1.0.0"
           transport: "streamable-http"
           args:
@@ -71,7 +71,7 @@ steps:
   - label: "Use GitHub MCP Server"
     command: "your-command"
     plugins:
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "github"
           secrets:
             - name: "github-token"
@@ -215,7 +215,7 @@ steps:
           print('Available MCP servers:', list(config['mcpServers'].keys()))
       "
     plugins:
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "fetch"
           mcp-config-file: "./my_mcp_config.json"
 ```
@@ -280,7 +280,7 @@ steps:
       echo "MCP server is running"
       curl http://localhost:9000/health
     plugins:
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "my-registry/custom-mcp:v2.0.0"
           name: "my-custom-server"
           transport: "sse"
@@ -310,13 +310,13 @@ steps:
   - label: "Step 1: Use Fetch Server"
     command: "test-fetch-functionality"
     plugins:
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "fetch"
           
   - label: "Step 2: Use GitHub Server"
     command: "test-github-integration"
     plugins:
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "github"
           secrets:
             - name: "github-token"
@@ -335,11 +335,11 @@ steps:
       curl http://localhost:8080/fetch-endpoint
       curl http://localhost:8081/github-endpoint
     plugins:
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "fetch"
           name: "fetch-server"
           proxy-port: 8080
-      - StacklokLabs/toolhive#v0.0.1:
+      - StacklokLabs/toolhive#v0.0.2:
           server: "github"
           name: "github-server"
           proxy-port: 8081
