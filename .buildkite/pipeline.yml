@@ -1,35 +1,49 @@
 steps:
   - label: ":hammer_and_wrench: Setup"
+    agents:
+      queue: staging
     command: |
       echo "Setting up development environment..."
       task dev-setup
 
   - label: ":mag: Validate Plugin"
+    agents:
+      queue: staging
     command: |
       echo "Validating plugin configuration..."
       task validate
 
   - label: ":shell: Syntax Check"
+    agents:
+      queue: staging
     command: |
       echo "Checking shell script syntax..."
       task syntax-check
 
   - label: ":lint-roller: Plugin Linter"
+    agents:
+      queue: staging
     command: |
       echo "Running Buildkite plugin linter..."
       task lint
 
   - label: ":bug: ShellCheck"
+    agents:
+      queue: staging
     command: |
       echo "Running ShellCheck on hooks..."
       task shellcheck
 
   - label: ":test_tube: BATS Tests"
+    agents:
+      queue: staging
     command: |
       echo "Running BATS tests..."
       task test
 
   - label: ":white_check_mark: All Checks"
+    agents:
+      queue: staging
     depends_on:
       - "validate-plugin"
       - "syntax-check"
@@ -40,13 +54,14 @@ steps:
       echo "✅ All checks passed successfully!"
       echo "Plugin is ready for release"
 
-  - label: ":package: Test Plugin Usage"
-    command: |
-      echo "Testing plugin with a simple MCP server..."
-      echo "This would normally test the plugin in a real pipeline"
-    plugins:
-      - ./.:
-          server: "fetch"
-          name: "test-fetch-server"
-          cleanup: true
-    if: build.branch == "main"
+  # Commenting this out since we're running CI on a very locked down cluster.
+  # - label: ":package: Test Plugin Usage"
+  #   command: |
+  #     echo "Testing plugin with a simple MCP server..."
+  #     echo "This would normally test the plugin in a real pipeline"
+  #   plugins:
+  #     - ./.:
+  #         server: "fetch"
+  #         name: "test-fetch-server"
+  #         cleanup: true
+  #   if: build.branch == "main"
