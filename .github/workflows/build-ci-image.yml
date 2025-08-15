@@ -15,7 +15,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/ci-tools
+  IMAGE_NAME: stackloklabs/toolhive-buildkite-plugin/ci-tools
 
 jobs:
   build-and-push:
