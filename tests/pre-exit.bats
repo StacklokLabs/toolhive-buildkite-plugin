@@ -57,7 +57,7 @@ setup() {
   assert_success
   assert_output --partial "Found MCP server 'test-server', proceeding with cleanup..."
   assert_output --partial "Removing MCP server 'test-server'..."
-  assert_output --partial "✅ MCP server removed successfully"
+  assert_output --partial "✅ MCP server 'test-server' removed successfully"
   assert_output --partial "✅ Cleanup completed successfully for 'test-server'"
   
   unstub thv
@@ -77,7 +77,7 @@ setup() {
   assert_success
   assert_output --partial "Found MCP server 'test-server', proceeding with cleanup..."
   assert_output --partial "Removing MCP server 'test-server'..."
-  assert_output --partial "✅ MCP server removed successfully"
+  assert_output --partial "✅ MCP server 'test-server' removed successfully"
   assert_output --partial "✅ Cleanup completed successfully for 'test-server'"
   
   unstub thv
@@ -86,12 +86,16 @@ setup() {
 @test "Pre-exit hook cleans up MCP configuration file when enabled" {
   export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILES="./test_mcp_config.json"
   export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_CLEANUP_SETTING="true"
+  export BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES="test-server"
   
   # Create a temporary config file
   echo '{"mcpServers": {}}' > "./test_mcp_config.json"
   
   # Verify file exists before cleanup
   [ -f "./test_mcp_config.json" ]
+  
+  stub thv \
+    'list --all : echo ""'
   
   run "$PWD/hooks/pre-exit"
   
@@ -101,17 +105,23 @@ setup() {
   
   # Verify file was removed
   [ ! -f "./test_mcp_config.json" ]
+  
+  unstub thv
 }
 
 @test "Pre-exit hook skips MCP config cleanup when disabled" {
   export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILES="./test_mcp_config.json"
   export BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_CLEANUP_SETTING="false"
+  export BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES="test-server"
   
   # Create a temporary config file
   echo '{"mcpServers": {}}' > "./test_mcp_config.json"
   
   # Verify file exists before cleanup
   [ -f "./test_mcp_config.json" ]
+  
+  stub thv \
+    'list --all : echo ""'
   
   run "$PWD/hooks/pre-exit"
   
@@ -123,6 +133,8 @@ setup() {
   
   # Clean up manually
   rm -f "./test_mcp_config.json"
+  
+  unstub thv
 }
 
 @test "Pre-exit hook handles non-existent server gracefully" {

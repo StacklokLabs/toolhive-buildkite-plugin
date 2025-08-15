@@ -20,18 +20,17 @@ setup() {
   stub thv \
     'registry info fetch : exit 0' \
     'list --all : echo ""' \
-    'run --name fetch-server fetch : echo "Server started"' \
-    'list --all : echo "fetch-server running stdio 8080 http://localhost:8080"'
+    'run --name fetch-server --label buildkite.pipeline=build-123 fetch : echo "Server started"' \
+    'list --all : echo "fetch-server running stdio 8080 http://localhost:8080"' \
+    'list --format=mcpservers -l buildkite.pipeline=build-123 : echo "{\"mcpServers\": {}}"'
   
-  run "$PWD/hooks/pre-command"
-  
-  assert_success
-  assert_output --partial "✅ MCP server 'fetch-server' started successfully"
-  
-  unstub thv
+  # Source the hook instead of running it in a subshell to preserve environment variables
+  source "$PWD/hooks/pre-command"
   
   # Verify first server is stored
   assert_equal "$BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES" "fetch-server"
+  
+  unstub thv
   
   # Second plugin call (simulating multiple plugin usage)
   export BUILDKITE_PLUGIN_TOOLHIVE_SERVER="github"
@@ -40,18 +39,17 @@ setup() {
   stub thv \
     'registry info github : exit 0' \
     'list --all : echo ""' \
-    'run --name github-server github : echo "Server started"' \
-    'list --all : echo "github-server running stdio 8081 http://localhost:8081"'
+    'run --name github-server --label buildkite.pipeline=build-123 github : echo "Server started"' \
+    'list --all : echo "github-server running stdio 8081 http://localhost:8081"' \
+    'list --format=mcpservers -l buildkite.pipeline=build-123 : echo "{\"mcpServers\": {}}"'
   
-  run "$PWD/hooks/pre-command"
-  
-  assert_success
-  assert_output --partial "✅ MCP server 'github-server' started successfully"
-  
-  unstub thv
+  # Source the hook instead of running it in a subshell to preserve environment variables
+  source "$PWD/hooks/pre-command"
   
   # Verify both servers are stored
   assert_equal "$BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES" "fetch-server,github-server"
+  
+  unstub thv
 }
 
 @test "Pre-exit cleans up multiple servers" {
