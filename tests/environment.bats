@@ -6,7 +6,8 @@ load "$BATS_PLUGIN_PATH/load.bash"
 # export BUILDKITE_AGENT_STUB_DEBUG=/dev/tty
 
 setup() {
-  export PATH="$BATS_TEST_TMPDIR:$PATH"
+  # Clean environment for each test
+  unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES
 }
 
 @test "Environment hook skips installation when thv is already available" {
