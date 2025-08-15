@@ -5,6 +5,12 @@ load "$BATS_PLUGIN_PATH/load.bash"
 # Uncomment the following line to debug stub failures
 # export BUILDKITE_AGENT_STUB_DEBUG=/dev/tty
 
+setup() {
+  export PATH="$BATS_TEST_TMPDIR:$PATH"
+  # Ensure we have a clean environment for each test
+  unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES
+}
+
 @test "Multiple plugin calls store all server names" {
   export BUILDKITE_BUILD_NUMBER="123"
   
@@ -66,9 +72,9 @@ load "$BATS_PLUGIN_PATH/load.bash"
   assert_success
   assert_output --partial "Found MCP servers to clean up: fetch-server,github-server"
   assert_output --partial "Cleaning up MCP server: fetch-server"
-  assert_output --partial "✅ MCP server removed successfully"
+  assert_output --partial "✅ Cleanup completed successfully for 'fetch-server'"
   assert_output --partial "Cleaning up MCP server: github-server"
-  assert_output --partial "✅ MCP server removed successfully"
+  assert_output --partial "✅ Cleanup completed successfully for 'github-server'"
   
   unstub thv
 }
@@ -90,7 +96,8 @@ load "$BATS_PLUGIN_PATH/load.bash"
   
   assert_success
   assert_output --partial "Found MCP servers to clean up: running-server,stopped-server,missing-server"
-  assert_output --partial "✅ MCP server removed successfully"
+  assert_output --partial "✅ Cleanup completed successfully for 'running-server'"
+  assert_output --partial "✅ Cleanup completed successfully for 'stopped-server'"
   assert_output --partial "MCP server 'missing-server' not found, nothing to clean up"
   
   unstub thv

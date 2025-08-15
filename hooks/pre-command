@@ -3,12 +3,6 @@ set -euo pipefail
 
 echo "--- :rocket: Starting ToolHive MCP Server"
 
-# Ensure ToolHive is available
-if ! command -v thv >/dev/null 2>&1; then
-    echo "Error: ToolHive (thv) not found in PATH" >&2
-    exit 1
-fi
-
 # Get plugin configuration
 SERVER="${BUILDKITE_PLUGIN_TOOLHIVE_SERVER:-}"
 CUSTOM_NAME="${BUILDKITE_PLUGIN_TOOLHIVE_NAME:-}"
@@ -21,6 +15,12 @@ MCP_CONFIG_CLEANUP="${BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_CLEANUP:-true}"
 # Validate required configuration
 if [[ -z "$SERVER" ]]; then
     echo "Error: 'server' configuration is required" >&2
+    exit 1
+fi
+
+# Ensure ToolHive is available
+if ! command -v thv >/dev/null 2>&1; then
+    echo "Error: ToolHive (thv) not found in PATH" >&2
     exit 1
 fi
 

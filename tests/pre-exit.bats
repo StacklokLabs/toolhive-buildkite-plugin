@@ -5,6 +5,14 @@ load "$BATS_PLUGIN_PATH/load.bash"
 # Uncomment the following line to debug stub failures
 # export BUILDKITE_AGENT_STUB_DEBUG=/dev/tty
 
+setup() {
+  export PATH="$BATS_TEST_TMPDIR:$PATH"
+  # Ensure we have a clean environment for each test
+  unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES
+  unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_FILES
+  unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_CONFIG_CLEANUP_SETTING
+}
+
 @test "Pre-exit hook skips cleanup when disabled" {
   export BUILDKITE_PLUGIN_TOOLHIVE_CLEANUP="false"
   export BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES="test-server"
@@ -51,7 +59,7 @@ load "$BATS_PLUGIN_PATH/load.bash"
   assert_output --partial "Found MCP server 'test-server', proceeding with cleanup..."
   assert_output --partial "Removing MCP server 'test-server'..."
   assert_output --partial "✅ MCP server removed successfully"
-  assert_output --partial "✅ Cleanup completed successfully"
+  assert_output --partial "✅ Cleanup completed successfully for 'test-server'"
   
   unstub thv
 }
@@ -71,7 +79,7 @@ load "$BATS_PLUGIN_PATH/load.bash"
   assert_output --partial "Found MCP server 'test-server', proceeding with cleanup..."
   assert_output --partial "Removing MCP server 'test-server'..."
   assert_output --partial "✅ MCP server removed successfully"
-  assert_output --partial "✅ Cleanup completed successfully"
+  assert_output --partial "✅ Cleanup completed successfully for 'test-server'"
   
   unstub thv
 }

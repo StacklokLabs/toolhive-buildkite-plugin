@@ -5,6 +5,12 @@ load "$BATS_PLUGIN_PATH/load.bash"
 # Uncomment the following line to debug stub failures
 # export BUILDKITE_AGENT_STUB_DEBUG=/dev/tty
 
+setup() {
+  export PATH="$BATS_TEST_TMPDIR:$PATH"
+  # Ensure we have a clean environment for each test
+  unset BUILDKITE_PLUGIN_TOOLHIVE_MCP_SERVER_NAMES
+}
+
 @test "Pre-command hook requires server configuration" {
   unset BUILDKITE_PLUGIN_TOOLHIVE_SERVER
   

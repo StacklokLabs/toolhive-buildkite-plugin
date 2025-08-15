@@ -22,7 +22,7 @@ tasks:
     cmds:
       - echo "Running BATS tests..."
       - echo "Using container runtime{{":"}} {{.CONTAINER_CMD}}"
-      - "{{.CONTAINER_CMD}} run --rm -v .:/plugin:ro -w /plugin buildkite/plugin-tester bats tests/"
+      - "{{.CONTAINER_CMD}} run --rm -v .:/plugin -w /plugin buildkite/plugin-tester bats tests/*.bats"
 
   lint:
     desc: Run Buildkite plugin linter

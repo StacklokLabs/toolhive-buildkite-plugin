@@ -5,6 +5,10 @@ load "$BATS_PLUGIN_PATH/load.bash"
 # Uncomment the following line to debug stub failures
 # export BUILDKITE_AGENT_STUB_DEBUG=/dev/tty
 
+setup() {
+  export PATH="$BATS_TEST_TMPDIR:$PATH"
+}
+
 @test "Environment hook skips installation when thv is already available" {
   stub thv \
     'version : echo "ToolHive v0.0.33"'
