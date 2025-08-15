@@ -135,12 +135,18 @@ volumes:
 Use servers from the [ToolHive registry](https://docs.stacklok.com/toolhive/guides-cli/registry):
 
 ```yaml
-# Examples of registry servers:
-server: "fetch"           # Fetch MCP server
-# OR
-server: "github"          # GitHub MCP server
-# OR
-server: "filesystem"      # Filesystem MCP server
+# Fetch MCP server
+server: "fetch"
+```
+
+```yaml
+# GitHub MCP server
+server: "github"
+```
+
+```yaml
+# Filesystem MCP server
+server: "filesystem"
 ```
 
 ### Docker Images
@@ -148,9 +154,12 @@ server: "filesystem"      # Filesystem MCP server
 Use any Docker image that implements the MCP protocol:
 
 ```yaml
-# Examples of Docker image servers:
+# Custom Docker image
 server: "my-registry/my-mcp-server:v1.0.0"
-# OR
+```
+
+```yaml
+# GitHub Container Registry image
 server: "ghcr.io/org/mcp-server:latest"
 ```
 
@@ -159,9 +168,18 @@ server: "ghcr.io/org/mcp-server:latest"
 Use package managers to run MCP servers:
 
 ```yaml
-server: "uvx://python-mcp-package@1.0.0"    # Python via uv
-server: "npx://node-mcp-package@2.0.0"      # Node.js via npm
-server: "go://github.com/org/go-mcp-server"  # Go module
+# Python via uv
+server: "uvx://python-mcp-package@1.0.0"
+```
+
+```yaml
+# Node.js via npm
+server: "npx://node-mcp-package@2.0.0"
+```
+
+```yaml
+# Go module
+server: "go://github.com/org/go-mcp-server"
 ```
 
 ## MCP Configuration File Generation
