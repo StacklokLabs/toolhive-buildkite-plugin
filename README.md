@@ -135,8 +135,11 @@ volumes:
 Use servers from the [ToolHive registry](https://docs.stacklok.com/toolhive/guides-cli/registry):
 
 ```yaml
+# Examples of registry servers:
 server: "fetch"           # Fetch MCP server
+# OR
 server: "github"          # GitHub MCP server
+# OR
 server: "filesystem"      # Filesystem MCP server
 ```
 
@@ -145,7 +148,9 @@ server: "filesystem"      # Filesystem MCP server
 Use any Docker image that implements the MCP protocol:
 
 ```yaml
+# Examples of Docker image servers:
 server: "my-registry/my-mcp-server:v1.0.0"
+# OR
 server: "ghcr.io/org/mcp-server:latest"
 ```
 
