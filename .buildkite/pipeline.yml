@@ -13,8 +13,8 @@ steps:
     command: |
       echo "Checking shell script syntax..."
       for hook in hooks/*; do
-        echo "Checking $hook..."
-        bash -n "$hook" || exit 1
+        echo "Checking $$hook..."
+        bash -n "$$hook" || exit 1
       done
       echo "✅ All hooks have valid syntax"
 
