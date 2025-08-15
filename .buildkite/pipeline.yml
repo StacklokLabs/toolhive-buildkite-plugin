@@ -23,7 +23,7 @@ steps:
       queue: staging
     command: |
       echo "Running Buildkite plugin linter..."
-      buildkite-plugin-linter --id StacklokLabs/toolhive .
+      buildkite-plugin-linter --id StacklokLabs/toolhive --path .
 
   - label: ":bug: ShellCheck"
     agents:

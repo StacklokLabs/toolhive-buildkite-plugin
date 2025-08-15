@@ -37,7 +37,29 @@ RUN git clone https://github.com/bats-core/bats-core.git /tmp/bats-core \
 
 # Install bats-support and bats-assert for better test functionality
 RUN git clone https://github.com/bats-core/bats-support.git /usr/local/lib/bats-support \
-    && git clone https://github.com/bats-core/bats-assert.git /usr/local/lib/bats-assert
+    && git clone https://github.com/bats-core/bats-assert.git /usr/local/lib/bats-assert \
+    && git clone https://github.com/bats-core/bats-file.git /usr/local/lib/bats-file
+
+# Set up BATS plugin path to match buildkite/plugin-tester expectations
+ENV BATS_PLUGIN_PATH=/usr/lib/bats
+
+# Install bats-mock (buildkite's fork) which provides the stub functionality
+RUN mkdir -p "${BATS_PLUGIN_PATH}"/bats-mock \
+    && curl -sSL https://github.com/buildkite-plugins/bats-mock/archive/v2.1.1.tar.gz -o /tmp/bats-mock.tgz \
+    && tar -zxf /tmp/bats-mock.tgz -C "${BATS_PLUGIN_PATH}"/bats-mock --strip 1 \
+    && rm -rf /tmp/bats-mock.tgz
+
+# Create symlinks for BATS libraries in the plugin path
+RUN mkdir -p "${BATS_PLUGIN_PATH}" \
+    && ln -s /usr/local/lib/bats-support "${BATS_PLUGIN_PATH}"/bats-support \
+    && ln -s /usr/local/lib/bats-assert "${BATS_PLUGIN_PATH}"/bats-assert \
+    && ln -s /usr/local/lib/bats-file "${BATS_PLUGIN_PATH}"/bats-file
+
+# Create the load.bash file that sources all BATS libraries (matching plugin-tester setup)
+RUN printf 'source "%s"\n' "${BATS_PLUGIN_PATH}/bats-support/load.bash" >> "${BATS_PLUGIN_PATH}"/load.bash \
+    && printf 'source "%s"\n' "${BATS_PLUGIN_PATH}/bats-assert/load.bash" >> "${BATS_PLUGIN_PATH}"/load.bash \
+    && printf 'source "%s"\n' "${BATS_PLUGIN_PATH}/bats-mock/stub.bash" >> "${BATS_PLUGIN_PATH}"/load.bash \
+    && printf 'source "%s"\n' "${BATS_PLUGIN_PATH}/bats-file/load.bash" >> "${BATS_PLUGIN_PATH}"/load.bash
 
 # Install Node.js and npm for buildkite-plugin-linter
 RUN apk add --no-cache nodejs npm
