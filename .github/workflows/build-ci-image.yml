@@ -67,7 +67,7 @@ jobs:
 
       - name: Test image (amd64)
         run: |
-          docker run --rm --platform linux/amd64 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest bash -c "
+          docker run --rm --platform linux/amd64 --entrypoint="" ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest bash -c "
             echo 'Testing installed tools on amd64...'
             python3 --version
             shellcheck --version
@@ -79,7 +79,7 @@ jobs:
 
       - name: Test image (arm64)
         run: |
-          docker run --rm --platform linux/arm64 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest bash -c "
+          docker run --rm --platform linux/arm64 --entrypoint="" ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest bash -c "
             echo 'Testing installed tools on arm64...'
             python3 --version
             shellcheck --version
