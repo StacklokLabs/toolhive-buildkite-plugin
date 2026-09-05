@@ -1,7 +1,7 @@
 # CI Tools Docker Image for Buildkite Plugin Testing
 # This image contains all the tools needed to run our CI pipeline
 
-FROM buildkite/agent:3
+FROM buildkite/agent:4
 
 # Install system dependencies
 USER root
